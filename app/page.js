@@ -1,113 +1,90 @@
-import Image from "next/image";
+"use client";
+
+import { Menubar } from "primereact/menubar";
+import { Card } from "primereact/card";
+import { Message } from "primereact/message";
+import { useEffect, useState } from "react";
+import { ListBox } from "primereact/listbox";
+import { Button } from "primereact/button";
+
+function Quiz(props) {
+	const [selected, setSelected] = useState(null);
+	const [invalid, setInvalid] = useState(false);
+	const [correct, setCorrect] = useState(null);
+
+	const options = [];
+	for (const [i, v] of props.question.choice.entries()) {
+		options.push({
+			label: `${i + 1}. ${v}`,
+			value: i
+		});
+	}
+
+	useEffect(()=>{
+		console.log("selected:",selected, props.question.a);
+		if (selected == null) return;
+		const isCorrect = selected == props.question.a;
+		setInvalid(!isCorrect);
+		if (correct == null) {
+			setCorrect(isCorrect);
+		}
+	}, [selected]);
+
+	let cardClassName
+	if (correct == true) {
+		cardClassName = "text-green-400"
+	} else if (correct == false) {
+		cardClassName = "line-through text-red-400"
+	}
+	return (
+		<div className="p-1">
+			<Card title={`[${props.i + 1}번 문제] ${props.question.q}`} className={cardClassName}>
+				<ListBox invalid={invalid} value={selected} onChange={(e) => setSelected(e.value)} options={options} optionLabel="label" className="w-full md:w-14rem no-underline"/>
+			</Card>
+		</div>
+	)
+}
 
 export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+	const [quizData, setQuizData] = useState(null);
+	const [loading, setLoading] = useState(true);
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+	const getQuiz = async () => {
+		const res = await fetch("/api/quiz",  { next: { revalidate: 3600 } });
+		const json = await res.json();
+		console.log(json);
+		setQuizData(json);
+		setLoading(false);
+	}
+	useEffect(() => {
+		getQuiz();
+	}, []);
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+	const quizComponents = []
+	if (quizData != null) {
+		for (const [i, v] of Object.entries(quizData)) {
+			const key = Number(i)
+			quizComponents.push(<Quiz key={key} question={v} i={key} />);
+		}
+	}
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
+	const items = []
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+	return (
+		<div className="card">
+			<div className="menubar card fixed z-2 w-full">
+				<Menubar model={items} start={<span className="font-bold text-2xl p-5">세계 시민 퀴즈</span>} className="menubar p-3 surface-0 shadow-2"/>
+			</div>
+			<div className='p-5'></div>
+			<div className="p-1 pt-5">
+				<Message text="출처: 2023 에코프로 어린이 환경 골든벨 250제" />
+			</div>
+			{ loading && "로드 중" || null }
+			{ quizComponents }
+			<div className="p-1 flex space-x-4 mr-4">
+				<Button label="채점하기" className="px-6" />
+				<Button label="다시하기" onClick={getQuiz} className="px-6" />
+			</div>
+		</div>
+	)
 }
